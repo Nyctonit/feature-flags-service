@@ -41,6 +41,7 @@ def get_database_session():
         db.close()
 
 def create_tables():
+    Base.metadata.create_all(bind=engine, checkfirst=True)  # <- add checkfirst=True
     """
     Create all database tables.
     Called during application startup.
