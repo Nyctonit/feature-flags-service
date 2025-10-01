@@ -1,1 +1,1 @@
-# Feature Flags Service Application Packagepydantic==2.4.2
+pydantic==1.10.12
