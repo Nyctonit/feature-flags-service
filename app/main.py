@@ -33,6 +33,11 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
+# Root route
+@app.get("/", tags=["Root"])
+async def root():
+    return {"message": "Feature Flags Service is running 🚀", "docs": "/docs"}
+
 # Configure CORS for cross-origin requests
 app.add_middleware(
     CORSMiddleware,
