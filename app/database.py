@@ -1,49 +1,35 @@
-"""
-Database configuration and connection management for Feature Flags service.
-Uses SQLite for simplicity in MVP, easily switchable to PostgreSQL for production.
-"""
-
-import os
-from sqlalchemy import create_engine, MetaData
+from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+from sqlalchemy.orm import sessionmaker, Session
 
-# Database URL - defaults to SQLite, can be overridden via environment variable
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./feature_flags.db")
+# ------------------------
+# Database setup
+# ------------------------
 
-# Create database engine
-# For SQLite, we need to enable foreign key support
-if DATABASE_URL.startswith("sqlite"):
-    engine = create_engine(
-        DATABASE_URL, 
-        connect_args={"check_same_thread": False},
-        echo=False  # Set to True for SQL query debugging
-    )
-else:
-    # For PostgreSQL or other databases in production
-    engine = create_engine(DATABASE_URL, echo=False)
+DATABASE_URL = "sqlite:///./feature_flags.db"  # Local SQLite file
 
-# Create SessionLocal class for database sessions
+engine = create_engine(
+    DATABASE_URL, connect_args={"check_same_thread": False}  # Required for SQLite
+)
+
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-# Base class for our database models
 Base = declarative_base()
 
-def get_database_session():
-    """
-    Dependency function to get database session.
-    Ensures proper session lifecycle management.
-    """
+# ------------------------
+# Dependency for FastAPI
+# ------------------------
+
+def get_database_session() -> Session:
     db = SessionLocal()
     try:
         yield db
     finally:
         db.close()
 
+# ------------------------
+# Table creation
+# ------------------------
+
 def create_tables():
-    Base.metadata.create_all(bind=engine, checkfirst=True)  # <- add checkfirst=True
-    """
-    Create all database tables.
-    Called during application startup.
-    """
+    """Create all tables if they do not exist."""
     Base.metadata.create_all(bind=engine)
