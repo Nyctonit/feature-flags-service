@@ -1,8 +1,3 @@
-"""
-Main FastAPI application for Feature Flags / A/B Testing microservice.
-Provides REST API endpoints for managing and evaluating feature flags.
-"""
-
 from fastapi import FastAPI, Depends, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -11,12 +6,11 @@ from sqlalchemy.exc import IntegrityError
 from datetime import datetime
 from typing import List
 
-# Import our application modules
 from app.database import get_database_session, create_tables
 from app.models import FeatureFlag
 from app.schemas import (
-    FeatureFlagCreate, 
-    FeatureFlagUpdate, 
+    FeatureFlagCreate,
+    FeatureFlagUpdate,
     FeatureFlagResponse,
     UserFlagsResponse,
     UserFlagResponse,
@@ -24,7 +18,7 @@ from app.schemas import (
 )
 from app.feature_flag_service import FeatureFlagService
 
-# Create FastAPI application instance
+# FastAPI app instance
 app = FastAPI(
     title="Feature Flags Service",
     description="A minimal Feature Flags / A/B Testing microservice MVP",
@@ -33,7 +27,7 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# Configure CORS
+# Enable CORS
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Adjust for production
@@ -42,14 +36,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Application startup event
+# Startup event: create tables
 @app.on_event("startup")
 async def startup_event():
-    """Initialize database tables on application startup."""
     create_tables()
     print("Feature Flags Service started successfully!")
 
-# Health check endpoint
+# Health check
 @app.get("/health", response_model=HealthResponse, tags=["Health"])
 async def health_check():
     return HealthResponse(
@@ -58,10 +51,12 @@ async def health_check():
         version="1.0.0"
     )
 
-# Feature Flag Endpoints
-
+# Create a feature flag
 @app.post("/flags", response_model=FeatureFlagResponse, status_code=status.HTTP_201_CREATED, tags=["Flags"])
-async def create_feature_flag(flag_data: FeatureFlagCreate, db: Session = Depends(get_database_session)):
+async def create_feature_flag(
+    flag_data: FeatureFlagCreate,
+    db: Session = Depends(get_database_session)
+):
     try:
         db_flag = FeatureFlag(
             flag_name=flag_data.flag_name,
@@ -72,27 +67,28 @@ async def create_feature_flag(flag_data: FeatureFlagCreate, db: Session = Depend
         db.add(db_flag)
         db.commit()
         db.refresh(db_flag)
-        return FeatureFlagResponse.model_validate(db_flag)
-
+        return db_flag
     except IntegrityError:
         db.rollback()
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Feature flag with name '{flag_data.flag_name}' already exists"
+            detail=f"Feature flag '{flag_data.flag_name}' already exists"
         )
 
+# List all flags
 @app.get("/flags", response_model=List[FeatureFlagResponse], tags=["Flags"])
 async def list_feature_flags(db: Session = Depends(get_database_session)):
-    flags = db.query(FeatureFlag).all()
-    return [FeatureFlagResponse.model_validate(f) for f in flags]
+    return db.query(FeatureFlag).all()
 
+# Get a single flag
 @app.get("/flags/{flag_name}", response_model=FeatureFlagResponse, tags=["Flags"])
 async def get_feature_flag(flag_name: str, db: Session = Depends(get_database_session)):
     flag = db.query(FeatureFlag).filter(FeatureFlag.flag_name == flag_name).first()
     if not flag:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Feature flag '{flag_name}' not found")
-    return FeatureFlagResponse.model_validate(flag)
+    return flag
 
+# Update a flag
 @app.put("/flags/{flag_name}", response_model=FeatureFlagResponse, tags=["Flags"])
 async def update_feature_flag(flag_name: str, flag_update: FeatureFlagUpdate, db: Session = Depends(get_database_session)):
     flag = db.query(FeatureFlag).filter(FeatureFlag.flag_name == flag_name).first()
@@ -105,8 +101,9 @@ async def update_feature_flag(flag_name: str, flag_update: FeatureFlagUpdate, db
 
     db.commit()
     db.refresh(flag)
-    return FeatureFlagResponse.model_validate(flag)
+    return flag
 
+# Delete a flag
 @app.delete("/flags/{flag_name}", status_code=status.HTTP_204_NO_CONTENT, tags=["Flags"])
 async def delete_feature_flag(flag_name: str, db: Session = Depends(get_database_session)):
     flag = db.query(FeatureFlag).filter(FeatureFlag.flag_name == flag_name).first()
@@ -116,8 +113,7 @@ async def delete_feature_flag(flag_name: str, db: Session = Depends(get_database
     db.commit()
     return None
 
-# User-specific Flag Evaluation Endpoints
-
+# User-specific flag evaluation
 @app.get("/users/{user_id}/flags", response_model=UserFlagsResponse, tags=["User Flags"])
 async def get_user_flags(user_id: str, db: Session = Depends(get_database_session)):
     user_flags = FeatureFlagService.evaluate_flags_for_user(db, user_id)
@@ -133,14 +129,12 @@ async def get_user_flag(user_id: str, flag_name: str, db: Session = Depends(get_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Feature flag '{flag_name}' not found")
     return UserFlagResponse(**result)
 
-# Error handling
+# ValueError handler
 @app.exception_handler(ValueError)
 async def value_error_handler(request, exc):
-    return JSONResponse(
-        status_code=status.HTTP_400_BAD_REQUEST,
-        content={"detail": str(exc)}
-    )
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(exc)})
 
+# Run with uvicorn if executed directly
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
