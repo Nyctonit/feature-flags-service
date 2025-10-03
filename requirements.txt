@@ -1,10 +1,10 @@
-fastapi==0.104.1
-pydantic==1.10.12
-uvicorn==0.24.0
-sqlalchemy==2.0.23
-alembic==1.12.1
-python-multipart==0.0.6
-pytest==7.4.3
-pytest-asyncio==0.21.1
-httpx==0.25.2
-gunicorn==21.2.0
+fastapi==0.104.1              # current version, stable with Pydantic 1.x
+pydantic==1.10.12             # Keep Pydantic 1.x for compatibility
+uvicorn==0.24.0               # ASGI server
+sqlalchemy==2.0.23            # ORM
+alembic==1.12.1               # DB migrations
+python-multipart==0.0.6       # File uploads support
+gunicorn==21.2.0              # Production WSGI server
+httpx==0.25.2                 # For API testing
+pytest==7.4.3                 # Unit testing
+pytest-asyncio==0.21.1        # Async test support
