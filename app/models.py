@@ -1,17 +1,14 @@
-from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, func
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, Boolean, Float, DateTime, Text
 from app.database import Base
 
 class FeatureFlag(Base):
-    """
-    SQLAlchemy model for feature flags.
-    Stores configuration for feature toggles / A/B tests.
-    """
     __tablename__ = "feature_flags"
 
     id = Column(Integer, primary_key=True, index=True)
-    flag_name = Column(String(255), unique=True, nullable=False, index=True)
-    status = Column(Boolean, nullable=False, default=False)
-    rollout_percentage = Column(Float, nullable=True)
-    description = Column(String(500), nullable=True)
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    flag_name = Column(String(255), unique=True, index=True, nullable=False)
+    status = Column(Boolean, default=False, nullable=False)
+    rollout_percentage = Column(Float, nullable=True)  # 0–100
+    description = Column(Text, nullable=True)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
