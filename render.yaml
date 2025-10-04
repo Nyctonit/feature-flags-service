@@ -2,13 +2,16 @@ services:
   - type: web
     name: feature-flags-service
     env: python
-    plan: free
-    buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn app.main:app -w 2 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT
-    healthCheckPath: /health
+    plan: free  
+    region: frankfurt
+    buildCommand: "pip install -r requirements.txt"
+    startCommand: "gunicorn app.main:app -w 4 -k uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT"
     envVars:
-      - key: PYTHON_VERSION
-        value: 3.11
       - key: DATABASE_URL
-        value: sqlite:///./feature_flags.db
-    autoDeploy: true
+        fromDatabase:
+          name: feature-flags-db
+          property: connectionString
+databases:
+  - name: feature-flags-db
+    plan: free
+    region: frankfurt
